@@ -33,7 +33,7 @@
  *---------------------------------------------------------------------------*/
 /**
  *  DATE                AUTHOR      INSTRUCTION
- *  2019-04-28 15:00  zhangqianfu  The first version  
+ *  2019-04-28 15:00  zhangqianfu  The first version
  *
  */
 
@@ -46,16 +46,9 @@
 #endif
 
 
-#ifdef WITH_DTLS
-#include <dtls_interface.h>
-
-#endif
-
-
-
-#define  CN_LINK_VERSION_MAJOR      1
-#define  CN_LINK_VERSION_MINOR      2
-#define  CN_LINK_VERSION_FEATURE    1
+#define  CN_LINK_VERSION_MAJOR      2
+#define  CN_LINK_VERSION_MINOR      0
+#define  CN_LINK_VERSION_FEATURE    0
 
 
 static char s_link_mainversion[64];
@@ -67,10 +60,7 @@ const char *linkmain_version()
 }
 
 
-
-
 static int s_link_start = 0;
-
 int link_main(void *args)
 {
     ///< install the RTOS kernel for the link
@@ -81,26 +71,7 @@ int link_main(void *args)
     s_link_start =1;
 
     osal_init();
-#if CONFIG_LITEOS_ENABLE
-    #include <liteos_imp.h>
-    osal_install_liteos();
-#elif CONFIG_LINUX_ENABLE
-    #include <linux_imp.h>
-    #include <signal.h>
-    sigaction(SIGPIPE, &(struct sigaction){SIG_IGN}, NULL);
-    osal_install_linux();
-#elif CONFIG_MACOS_ENABLE
-    #include <macos_imp.h>
-    osal_install_macos();
-#elif CONFIG_NOVAOS_ENABLE
-    #include <novaos_imp.h>
-    osal_install_novaos();
-#else
-    #error("you should add your own os here");
-
-#endif
     printf("linkmain:%s \n\r",linkmain_version());
-
 
 #if CONFIG_STIMER_ENABLE
     #include <stimer.h>
@@ -140,6 +111,16 @@ int link_main(void *args)
     #include <at.h>
     #include <iot_link_config.h>
     extern bool_t uart_at_init(int baud);
+
+
+    #ifndef CONFIG_AT_BAUDRATE
+    #define CONFIG_AT_BAUDRATE  9600
+    #endif
+
+    #ifndef CONFIG_AT_DEVICENAME
+    #define CONFIG_AT_DEVICENAME  "atdev"
+    #endif
+
     ///< install the at framework for the link
     uart_at_init(CONFIG_AT_BAUDRATE);
     at_init(CONFIG_AT_DEVICENAME);
@@ -160,34 +141,13 @@ int link_main(void *args)
 
 #if CONFIG_TCPIP_ENABLE
     #include <sal.h>
-    tcpipstack_init(10);
-
-    #if CONFIG_LWIP_ENABLE
-        #include <lwip_imp.h>
-        tcpipstack_install_lwip();
-    #elif CONFIG_LINUX_SOCKET_ENABLE
-        #include <linux_socket_imp.h>
-        tcpipstack_install_linux_socket();
-    #elif CONFIG_MACOS_SOCKET_ENABLE
-        #include <macos_socket_imp.h>
-        tcpipstack_install_macos_socket();
-    #elif CONFIG_ESP8266_SOCKET_ENABLE
-        #include <esp8266_socket_imp.h>
-        tcpipstack_install_esp8266_socket();
-        esp8266_boot();
-#elif CONFIG_RTK8710_SOCKET_ENABLE
-        #include <rtk8710_socket_imp.h>
-        tcpipstack_install_rtk8710_socket();
-        rtk8710_boot();
-    #else
-
-    #endif
-
+    link_tcpip_init();
 #endif
 
 //////////////////////////  DTLS PROTOCOL  /////////////////////////////////////
-#ifdef WITH_DTLS
-    dtls_init();
+#ifdef CONFIG_DTLS_ENABLE
+    #include <dtls_al.h>
+    dtls_al_init();
 #endif
 
 //////////////////////////  MQTT PROTOCOL  /////////////////////////////////////
@@ -214,6 +174,12 @@ int link_main(void *args)
     coap_install_libcoap();
 #endif
 
+//////////////////////////  LWM2M PROTOCOL  /////////////////////////////////
+#if CONFIG_WAKAAMA_ENABLE
+    #include <lwm2m_port.h>
+    lwm2m_install();
+#endif
+
 //////////////////////////  OC MQTT  //////////////////////////////////
 
 #if CONFIG_OC_MQTT_ENABLE
@@ -232,9 +198,9 @@ int link_main(void *args)
     #endif
 
 
-    #if CONFIG_OC_MQTT_EC20_ENABLE
-        #include <ec20_oc.h>
-        ec20_init();
+    #if CONFIG_OC_MQTT_EC2X_ENABLE
+        #include <ec2x_oc.h>
+        ec2x_oc_init();
     #endif
 
 

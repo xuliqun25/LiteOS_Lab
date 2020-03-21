@@ -62,7 +62,7 @@ static void *__task_create(const char *name,int (*task_entry)(void *args),\
 
     if((stack_size > 0) && (NULL == stack))
     {
-        ret = task_spawn(name,prior, 0,stack_size + 0x1000,task_entry,(uintptr_t)args);
+        ret = task_spawn(name,prior, 0,stack_size ,task_entry,(uintptr_t)args);
     }
 
     return ret;
@@ -280,7 +280,7 @@ static const tag_os s_link_novaos =
     .ops = &s_novaos_ops,
 };
 
-int osal_install_novaos(void)
+int os_imp_init(void)
 {
     int ret = -1;
 
